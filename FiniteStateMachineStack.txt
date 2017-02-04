@@ -1,0 +1,106 @@
+public class StackFSM {
+    private var stack :Array;
+ 
+    public function StackFSM() {
+        this.stack = new Array();
+    }
+ 
+    public function update() :void {
+        var currentStateFunction :Function = getCurrentState();
+ 
+        if (currentStateFunction != null) {
+            currentStateFunction();
+        }
+    }
+ 
+    public function popState() :Function {
+        return stack.pop();
+    }
+ 
+    public function pushState(state :Function) :void {
+        if (getCurrentState() != state) {
+            stack.push(state);
+        }
+    }
+ 
+    public function getCurrentState() :Function {
+        return stack.length > 0 ? stack[stack.length - 1] : null;
+    }
+}
+
+public class Ant {
+    (...)
+    public var brain :StackFSM;
+ 
+    public function Ant(posX :Number, posY :Number) {
+        (...)
+        brain = new StackFSM();
+ 
+        // Tell the brain to start looking for the leaf.
+        brain.pushState(findLeaf);
+ 
+        (...)
+    }
+ 
+    /**
+     * The "findLeaf" state.
+     * It makes the ant move towards the leaf.
+     */
+    public function findLeaf() :void {
+        // Move the ant towards the leaf.
+        velocity = new Vector3D(Game.instance.leaf.x - position.x, Game.instance.leaf.y - position.y);
+ 
+        if (distance(Game.instance.leaf, this) <= 10) {
+            // The ant is extremelly close to the leaf, it's time
+            // to go home.
+            brain.popState(); // removes "findLeaf" from the stack.
+            brain.pushState(goHome); // push "goHome" state, making it the active state.
+        }
+ 
+        if (distance(Game.mouse, this) <= MOUSE_THREAT_RADIUS) {
+            // Mouse cursor is threatening us. Let's run away!
+            // The "runAway" state is pushed on top of "findLeaf", which means
+            // the "findLeaf" state will be active again when "runAway" ends.
+            brain.pushState(runAway);
+        }
+    }
+ 
+    /**
+     * The "goHome" state.
+     * It makes the ant move towards its home.
+     */
+    public function goHome() :void {
+        // Move the ant towards home
+        velocity = new Vector3D(Game.instance.home.x - position.x, Game.instance.home.y - position.y);
+         
+        if (distance(Game.instance.home, this) <= 10) {
+            // The ant is home, let's find the leaf again.
+            brain.popState(); // removes "goHome" from the stack.
+            brain.pushState(findLeaf); // push "findLeaf" state, making it the active state
+        }
+         
+        if (distance(Game.mouse, this) <= MOUSE_THREAT_RADIUS) {
+            // Mouse cursor is threatening us. Let's run away!
+            // The "runAway" state is pushed on top of "goHome", which means
+            // the "goHome" state will be active again when "runAway" ends.
+            brain.pushState(runAway);
+        }
+    }
+     
+    /**
+     * The "runAway" state.
+     * It makes the ant run away from the mouse cursor.
+     */
+    public function runAway() :void {
+        // Move the ant away from the mouse cursor
+        velocity = new Vector3D(position.x - Game.mouse.x, position.y - Game.mouse.y);
+         
+        // Is the mouse cursor still close?
+        if (distance(Game.mouse, this) > MOUSE_THREAT_RADIUS) {
+            // No, the mouse cursor has gone away. Let's go back to the previously
+            // active state.
+            brain.popState();
+        }
+    }
+    (...)
+}
